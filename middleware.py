@@ -26,3 +26,32 @@ class CommunityLocalMiddleware(LocaleMiddleware):
        ]):
            return community_lang
        return lang_code
+
+
+@lru_cache.lru_cache(maxsize=1000)
+def check_for_community_language(lang_code):
+   """Checks whether there is a language file for the given language code.
+
+   lru_cache should have a maxsize to prevent from memory exhaustion attacks,
+   as the provided language codes are taken from the HTTP request. See also
+   <https://www.djangoproject.com/weblog/2007/oct/26/security-fix/>.
+   """
+   if lang_code is None:
+       return False
+   for path in locale_paths():
+       if gettext_module.find('django', path, [lang_code]) is not None:
+           return True
+   return False
+
+
+def locale_paths():
+   return list(settings.LOCALE_PATHS)
+
+
+def community_language(community, lang_code):
+   normalize_schema = schema_re.sub('', community.schema_name)
+   community_lang = '{lang_code}_{schema}'.format(
+       schema=normalize_schema,
+       lang_code=lang_code
+   )
+   return community_lang
